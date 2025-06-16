@@ -45,7 +45,13 @@ pub fn get_git_commit_hash() -> Result<String, Box<dyn Error>> {
 }
 
 /// Cast a new vote (fails if voter has already voted)
-pub fn cast_vote(vote: Vote) -> Result<(), Box<dyn Error>> {
+pub fn cast_vote(vote: Vote, branch: &str) -> Result<(), Box<dyn Error>> {
+    if branch == "main" {
+        return Err("'main' is a protected branch. Cannot create genesis block on it.".into());
+    }
+
+    checkout_branch(&branch)?;
+
     let chain = load_chain()?;
     let latest = chain.last().ok_or("No genesis block found")?;
 
@@ -92,7 +98,9 @@ pub fn cast_vote(vote: Vote) -> Result<(), Box<dyn Error>> {
 
 
 /// Returns (tally: HashMap<choice, count>, voters: HashMap<voter, choice>)
-pub fn tally_votes() -> Result<(HashMap<String, u64>, HashMap<String, String>), Box<dyn Error>> {
+pub fn tally_votes(branch: &str) -> Result<(HashMap<String, u64>, HashMap<String, String>), Box<dyn Error>> {
+    checkout_branch(&branch)?;
+
     let chain = load_chain()?;
     let mut tally = HashMap::new();
     let mut voters = HashMap::new();

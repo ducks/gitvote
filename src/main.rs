@@ -40,20 +40,15 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match cli {
         Cli::CreateGenesis { branch } => {
-            checkout_branch(&branch)?;
-            genesis::create_genesis_block()?;
+            genesis::create_genesis_block(&branch)?;
         }
         Cli::Vote { voter, choice, branch } => {
-            checkout_branch(&branch)?;
-
             let vote = Vote { voter, choice };
 
-            cast_vote(vote)?;
+            cast_vote(vote, &branch)?;
         }
         Cli::Tally { branch } => {
-            checkout_branch(&branch)?;
-
-            let (tally, voters) = tally_votes()?;
+            let (tally, voters) = tally_votes(&branch)?;
 
             println!("Vote Tally:");
             for (choice, count) in &tally {
@@ -75,7 +70,7 @@ pub fn run_sim() -> Result<(), Box<dyn Error>> {
     fs::remove_dir_all("blocks").ok(); // clean old chain
     fs::remove_dir_all(".git").ok();
 
-    create_genesis_block()?;
+    create_genesis_block("sim")?;
 
     for (voter, choice) in [
         ("alice", "blue"),
@@ -88,12 +83,12 @@ pub fn run_sim() -> Result<(), Box<dyn Error>> {
             voter: voter.to_string(),
             choice: choice.to_string(),
         };
-        if let Err(e) = cast_vote(vote) {
+        if let Err(e) = cast_vote(vote, "sim") {
             println!("✗ Error casting vote: {e}");
         }
     }
 
-    let (tally, voters) = tally_votes()?;
+    let (tally, voters) = tally_votes("sim")?;
 
     println!("\nVote tally:");
     for (choice, count) in tally {
