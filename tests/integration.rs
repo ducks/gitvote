@@ -5,39 +5,40 @@ use tempfile::TempDir;
 
 #[test]
 fn full_end_to_end_flow_with_real_cli() {
-
-    let binary_path = std::fs::canonicalize("./target/release/gitvote")
-        .expect("You must build the binary first (cargo build --release)");
-
     // Create temp directory
     let tmp_dir = TempDir::new().expect("failed to create temp dir");
     let repo_path = tmp_dir.path();
 
+    // Find the gitvote binary (always absolute path to avoid path issues)
+    let binary_path = std::fs::canonicalize("./target/release/gitvote")
+        .expect("You must build the binary first: cargo build --release");
 
     // Init Git repo
     run("git init", repo_path);
     run("git checkout -b president", repo_path);
 
+    run("git commit --allow-empty -m init", repo_path);
+
     // Cast 3 votes using the real gitvote binary
-    cast_vote(repo_path, "president", "blue", &binary_path);
-    cast_vote(repo_path, "president", "red", &binary_path);
-    cast_vote(repo_path, "president", "blue", &binary_path);
+    cast_vote(repo_path, &binary_path, "blue");
+    cast_vote(repo_path, &binary_path, "red");
+    cast_vote(repo_path, &binary_path, "blue");
 
     // Generate blocks
     run(
-        "./target/release/gitvote generate-blocks --branch president",
+        &format!("{} generate-blocks --branch president", binary_path.display()),
         repo_path,
     );
 
     // Validate chain
     run(
-        "./target/release/gitvote validate-chain",
+        &format!("{} validate-chain", binary_path.display()),
         repo_path,
     );
 
     // Tally votes
     run(
-        "./target/release/gitvote tally",
+        &format!("{} tally", binary_path.display()),
         repo_path,
     );
 
@@ -50,13 +51,12 @@ fn full_end_to_end_flow_with_real_cli() {
         .filter(|e| e.as_ref().unwrap().path().extension().unwrap() == "json")
         .count();
 
-    // We expect 3 blocks since 3 votes were cast
     assert_eq!(block_count, 3);
 }
 
-fn cast_vote(repo_path: &Path, race: &str, choice: &str, binary_path: &Path) {
+fn cast_vote(repo_path: &Path, binary_path: &Path, choice: &str) {
     run(
-        &format!("{} --race {} --choice {}", binary_path.display(), race, choice),
+        &format!("{} cast --choice {}", binary_path.display(), choice),
         repo_path,
     );
 }
@@ -65,7 +65,6 @@ fn run(cmd: &str, dir: &Path) {
     let mut parts = cmd.split_whitespace();
     let bin = parts.next().unwrap();
     let args: Vec<&str> = parts.collect();
-    println!("{}", bin);
 
     let status = Command::new(bin)
         .args(args)
