@@ -1,8 +1,8 @@
-use chrono::Utc;
 use std::fs;
 use std::process::Command;
 use std::error::Error;
 use std::path::Path;
+use uuid::Uuid;
 
 /// Casts a vote by writing a vote intent file and signing the commit.
 /// Assumes user has already checked out the correct election branch.
@@ -31,8 +31,7 @@ pub fn cast_vote(choice: &str) -> Result<(), Box<dyn Error>> {
     println!("✔ Voting on branch: {}", current_branch);
 
     // Prepare vote file
-    let timestamp = Utc::now().timestamp_millis();
-    let filename = format!("votes/vote-{}.txt", timestamp);
+    let filename = format!("votes/vote-{}.txt", Uuid::new_v4());
     fs::create_dir_all("votes")?;
     fs::write(&filename, choice)?;
 
