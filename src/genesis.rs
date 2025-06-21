@@ -1,5 +1,5 @@
 use crate::block::Block;
-use crate::checkout_branch;
+use crate::voting::checkout_branch;
 use chrono::Utc;
 use std::fs;
 use std::path::Path;
