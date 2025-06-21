@@ -19,9 +19,6 @@ struct Cli {
 enum Commands {
     /// Cast a vote
     Cast {
-        /// The election race (Git branch)
-        #[arg(long)]
-        race: String,
         /// Your vote choice
         #[arg(long)]
         choice: String,
@@ -48,7 +45,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let cli = Cli::parse();
 
     match cli.command {
-        Commands::Cast { race, choice } => voting::cast_vote(&race, &choice)?,
+        Commands::Cast { choice } => voting::cast_vote(&choice)?,
         Commands::GenerateBlocks { branch } => blocks::generate_blocks(&branch)?,
         Commands::ValidateChain => validate::validate_chain()?,
         Commands::Tally => tally::tally_votes()?,
