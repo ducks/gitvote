@@ -1,3 +1,8 @@
+use std::fs;
+use std::error::Error;
+use sha2::{ Digest, Sha256 };
+use gitvote::block::Block;
+
 pub fn validate_chain() -> Result<(), Box<dyn Error>> {
     let mut entries: Vec<_> = fs::read_dir("blocks")?
         .filter_map(|e| e.ok())

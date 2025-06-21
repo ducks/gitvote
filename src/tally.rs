@@ -3,7 +3,7 @@
 use std::collections::HashMap;
 use std::error::Error;
 use std::fs;
-use crate::block::Block;
+use gitvote::block::Block;
 
 pub fn tally_votes() -> Result<(), Box<dyn Error>> {
     let mut entries: Vec<_> = fs::read_dir("blocks")?

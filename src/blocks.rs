@@ -6,7 +6,7 @@ use std::fs;
 use std::process::Command;
 use sha2::{Digest, Sha256};
 use chrono::{TimeZone, Utc};
-use crate::block::Block;
+use gitvote::block::Block;
 
 pub fn generate_blocks(branch: &str) -> Result<(), Box<dyn Error>> {
     // Ensure we are on the correct branch
