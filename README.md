@@ -1,15 +1,18 @@
 # GitVote
 
-**GitVote** is a Git-native voting ledger where each vote is a Git commit.
-Votes are stored in structured JSON files, tracked in branches that represent elections.
+**GitVote** is a Git-native cryptographic voting protocol. Voters submit
+signed commits containing vote intent files on designated election branches.
+Administrators generate tamper-evident, hash-linked blocks from commit history,
+producing a fully auditable and offline-verifiable vote ledger.
 
 ## Features
 
-- Each vote is a verifiable Git commit
-- One vote per voter enforced
-- Elections live on their own branches
-- Votes are tallied by replaying commit history
-- Results are mergeable back to `main` for archival
+- Each vote is a signed Git commit tied to a cryptographic identity (GPG key)
+- Elections live on dedicated branches
+- Voters submit votes via simple `gitvote` CLI
+- Admin generates canonical blockchain-style ledger from commit history
+- Duplicate voting is automatically prevented
+- Results are auditable, replayable, and archived into `main` branch
 
 ---
 
@@ -23,60 +26,87 @@ cd gitvote
 ```
 
 ### Build the CLI
+
 ```
 cargo build --release
 ./target/release/gitvote --help
 ```
 
-## Commands
+## Voter Workflow
 
-### Create a New Election
-`./gitvote create-genesis --branch president`
-Creates a `blocks/000000.json` file and commits it to the `president` branch.
+1. Clone the election repo
+2. Cast a vote
+`./gitvote --race president --choice blue`
 
-### Cast a Vote
-`./gitvote cast --voter alice --choice blue --branch president`
-Adds a vote block for `alice`, commits it, and links it to the previous commit.
+This:
+- Create a new branch
+- Writes a vote intent file (e.g. votes/vote-<timestamp>.txt)
+- Creates a signed commit
+- Prepares the branch for push
+
+3. Push your branch
+4. Open a pull request
+
+## Admin Workflow
+
+### Generate Blocks
+
+`./gitvote generate-blocks --branch president`
+
+This scans merged commits, extracts vote intent, and produces canonical
+`blocks/000000.json`, `blocks/000001.json`, etc.
+
+### Validate the Chain
+
+`./gitvote validate-chain`
+
+Verifies the integrity of the hash-linked blocks.
 
 ### Tally Votes
-`./gitvote tally --branch president`
-Prints a summary of vote counts and who voted for what.
 
-## Flow Example
+`./gitvote tally`
+
+Prints vote totals from the finalized blocks.
+
+### Archive Election
+
+Once complete, merge the election branch into `main`:
 
 ```
-# Start a new election
-./gitvote create-genesis --branch referendum-a
-
-# Cast votes
-./gitvote cast --voter alice --choice yes --branch referendum-a
-./gitvote cast --voter bob --choice no --branch referendum-a
-
-# View results
-./gitvote tally --branch referendum-a
-
-# Merge completed vote history into main
 git checkout main
-git merge referendum-a --no-ff
+git merge --no-ff president
 git push
 ```
 
-## Vote Format
-Each vote is recorded in a block file such as `blocks/000001.json`:
+## Vote Intent Format
+
+Voter commits contain files like:
+
+`votes/vote-<timestamp>.txt`
+
+The file content contains the vote choice, e.g.:
+
+`blue`
+
+Voter identity is extracted from the GPG signature on the commit itself.
+
+## Block Format
+
+Generated blocks contain:
 
 ```
 {
   "index": 1,
   "timestamp": "2025-06-14T22:50:00Z",
-  "votes": [
-    {
-      "voter": "alice",
-      "choice": "blue"
-    }
-  ],
+  "choice": "blue",
+  "voter": "ABC123456789DEF1234567890ABCDEF123456789",
   "prev_hash": "abc123..."
 }
 ```
+
+- `voter` is the GPG key fingerprint extracted from commit signature.
+- `prev_hash` links each block to the previous via SHA-256.
+
 
 ## License
 MIT
