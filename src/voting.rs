@@ -31,7 +31,7 @@ pub fn cast_vote(choice: &str) -> Result<(), Box<dyn Error>> {
     println!("✔ Voting on branch: {}", current_branch);
 
     // Prepare vote file
-    let timestamp = Utc::now().timestamp();
+    let timestamp = Utc::now().timestamp_millis();
     let filename = format!("votes/vote-{}.txt", timestamp);
     fs::create_dir_all("votes")?;
     fs::write(&filename, choice)?;
