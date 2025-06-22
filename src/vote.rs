@@ -1,3 +1,5 @@
+use chrono::{ DateTime, Utc };
+
 use serde::{
     Deserialize,
     Serialize
@@ -12,4 +14,5 @@ pub struct Vote {
     pub choice: String,
 
     pub signature: String,
+    pub timestamp: DateTime<Utc>,
 }

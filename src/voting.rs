@@ -1,3 +1,4 @@
+use chrono::Utc;
 use std::fs;
 use std::process::Command;
 use std::error::Error;
@@ -26,7 +27,14 @@ pub fn cast_vote(choice: &str) -> Result<(), Box<dyn Error>> {
     fs::create_dir_all("votes")?;
     let filename = format!("votes/vote-{}.json", Uuid::new_v4());
 
-    let vote = Vote { voter, choice: choice.to_string(), signature };
+    let timestamp = Utc::now();
+
+    let vote = Vote {
+        voter,
+        choice: choice.to_string(),
+        signature,
+        timestamp,
+    };
     let json = serde_json::to_string_pretty(&vote)?;
     fs::write(&filename, json)?;
 
