@@ -8,4 +8,6 @@ pub struct Block {
     pub choice: String,
     pub voter: String,
     pub prev_hash: Option<String>,
+    pub hash: String,
+    pub signature: String,
 }
