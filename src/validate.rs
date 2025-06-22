@@ -1,40 +1,50 @@
 use std::fs;
 use std::error::Error;
-use sha2::{ Digest, Sha256 };
-use gitvote::block::Block;
+use crate::schema::load_schema;
+use std::path::Path;
+use crate::vote::Vote;
+use crate::utils::generate_fake_signature;
 
-pub fn validate_chain() -> Result<(), Box<dyn Error>> {
-    let mut entries: Vec<_> = fs::read_dir("blocks")?
-        .filter_map(|e| e.ok())
-        .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("json"))
-        .collect();
 
-    entries.sort_by_key(|e| e.path().to_path_buf());
+pub fn validate_votes() -> Result<(), Box<dyn Error>> {
+    let schema = load_schema()?;
+    let votes_path = Path::new("votes");
 
-    let mut prev_hash: Option<String> = None;
-
-    for entry in &entries {
-        let path = entry.path();
-        let content = fs::read_to_string(&path)?;
-        let block: Block = serde_json::from_str(&content)?;
-
-        let raw_json = serde_json::to_string(&block)?;
-        let computed_hash = format!("{:x}", Sha256::digest(raw_json.as_bytes()));
-
-        if block.index > 0 {
-            if block.prev_hash.as_deref() != prev_hash.as_deref() {
-                return Err(format!(
-                    "Chain broken at block {}: expected prev_hash {:?}, got {:?}",
-                    block.index,
-                    prev_hash,
-                    block.prev_hash
-                ).into());
-            }
-        }
-
-        prev_hash = Some(computed_hash);
+    if !votes_path.exists() {
+        println!("No votes to validate.");
+        return Ok(());
     }
 
-    println!("✔ Chain is valid: {} blocks verified.", entries.len());
+    let mut voters = vec![];
+
+    for entry in fs::read_dir(votes_path)? {
+        let entry = entry?;
+        let path = entry.path();
+        if path.extension().and_then(|s| s.to_str()) != Some("json") {
+            continue;
+        }
+
+        let content = fs::read_to_string(&path)?;
+        let vote: Vote = serde_json::from_str(&content)?;
+
+        if !schema.allowed.contains(&vote.choice) {
+            return Err(format!("Invalid choice '{}' in {:?}", vote.choice, path).into());
+        }
+
+        if voters.contains(&vote.voter) {
+            return Err(format!("Duplicate vote by voter: {}", vote.voter).into());
+        }
+
+        // Validate signature
+        let expected_sig = generate_fake_signature(&vote.voter, &vote.choice);
+
+        if vote.signature != expected_sig {
+            return Err(format!("Signature mismatch for voter {}", vote.voter).into());
+        }
+
+        voters.push(vote.voter);
+    }
+
+    println!("✔ All votes are valid.");
     Ok(())
 }

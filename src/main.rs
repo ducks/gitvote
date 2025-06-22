@@ -1,11 +1,16 @@
 use clap::{Parser, Subcommand};
 use std::error::Error;
 
-mod voting;
+
 mod blocks;
-mod validate;
-mod tally;
 mod doctor;
+mod git;
+mod tally;
+mod schema;
+mod utils;
+mod validate;
+mod voting;
+mod vote;
 
 #[derive(Parser)]
 #[command(name = "gitvote")]
@@ -24,15 +29,8 @@ enum Commands {
         choice: String,
     },
 
-    /// Generate blocks from commits
-    GenerateBlocks {
-        /// Branch to process
-        #[arg(long)]
-        branch: String,
-    },
-
     /// Validate the entire chain
-    ValidateChain,
+    Validate,
 
     /// Tally votes from existing blocks
     Tally,
@@ -46,8 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     match cli.command {
         Commands::Cast { choice } => voting::cast_vote(&choice)?,
-        Commands::GenerateBlocks { branch } => blocks::generate_blocks(&branch)?,
-        Commands::ValidateChain => validate::validate_chain()?,
+        Commands::Validate => validate::validate_votes()?,
         Commands::Tally => tally::tally_votes()?,
         Commands::Doctor => doctor::run_doctor_check()?,
     }

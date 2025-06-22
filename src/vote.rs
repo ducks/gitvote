@@ -10,4 +10,6 @@ pub struct Vote {
 
     /// Their selected choice (e.g. a candidate or option)
     pub choice: String,
+
+    pub signature: String,
 }

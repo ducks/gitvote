@@ -3,59 +3,36 @@ use std::process::Command;
 use std::error::Error;
 use std::path::Path;
 use uuid::Uuid;
+use crate::vote::Vote;
+use crate::git::get_git_voter;
+use crate::utils::generate_fake_signature;
+use crate::schema::load_schema;
 
 /// Casts a vote by writing a vote intent file and signing the commit.
 /// Assumes user has already checked out the correct election branch.
 pub fn cast_vote(choice: &str) -> Result<(), Box<dyn Error>> {
-    // Confirm we are in a Git repo
     if !Path::new(".git").exists() {
-        return Err("Not in a Git repository.".into());
+        return Err("Not inside a git repo.".into());
     }
 
-    // Check current branch
-    let current_branch = String::from_utf8(
-        Command::new("git")
-            .args(["rev-parse", "--abbrev-ref", "HEAD"])
-            .output()?
-            .stdout,
-    )?.trim().to_string();
-
-    if current_branch == "HEAD" {
-        return Err("Not on a branch (detached HEAD state).".into());
+    let schema = load_schema()?;
+    if !schema.allowed.contains(&choice.to_string()) {
+        return Err(format!("Invalid choice '{}'. Allowed: {:?}", choice, schema.allowed).into());
     }
 
-    if current_branch == "main" {
-        return Err("Voting on 'main' branch is not allowed.".into());
-    }
+    let voter = get_git_voter()?;
+    let signature = generate_fake_signature(&voter, choice);
 
-    println!("✔ Voting on branch: {}", current_branch);
-
-    // Prepare vote file
-    let filename = format!("votes/vote-{}.txt", Uuid::new_v4());
     fs::create_dir_all("votes")?;
-    fs::write(&filename, choice)?;
+    let filename = format!("votes/vote-{}.json", Uuid::new_v4());
 
-    // Add file to Git
-    let status = Command::new("git")
-        .args(["add", &filename])
-        .status()?;
+    let vote = Vote { voter, choice: choice.to_string(), signature };
+    let json = serde_json::to_string_pretty(&vote)?;
+    fs::write(&filename, json)?;
 
-    if !status.success() {
-        return Err("Failed to add vote file to Git.".into());
-    }
+    Command::new("git").args(["add", &filename]).status()?;
+    Command::new("git").args(["commit", "-m", &format!("vote: {}", choice)]).status()?;
 
-    // Commit with signed commit
-    let commit_msg = format!("vote: {}", choice);
-    let status = Command::new("git")
-        .args(["commit", "-S", "-m", &commit_msg])
-        .status()?;
-
-    if !status.success() {
-        return Err("Failed to create signed commit.".into());
-    }
-
-    println!("✔ Vote for '{}' recorded.", choice);
-    println!("Don't forget to push your branch and open a PR.");
-
+    println!("✔ Vote recorded as {}", filename);
     Ok(())
 }
