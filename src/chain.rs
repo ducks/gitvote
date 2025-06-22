@@ -7,6 +7,7 @@ use crate::vote::Vote;
 
 pub fn build() -> Result<(), Box<dyn Error>> {
     fs::create_dir_all("blocks")?;
+    fs::create_dir_all("votes")?;
 
     let mut entries: Vec<_> = fs::read_dir("votes")?
         .filter_map(Result::ok)
