@@ -1,8 +1,9 @@
 use clap::{Parser, Subcommand};
 use std::error::Error;
 
-
+mod block;
 mod blocks;
+mod chain;
 mod doctor;
 mod git;
 mod tally;
@@ -32,6 +33,9 @@ enum Commands {
     /// Validate the entire chain
     Validate,
 
+    /// Build the chain
+    BuildChain,
+
     /// Tally votes from existing blocks
     Tally,
 
@@ -45,6 +49,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     match cli.command {
         Commands::Cast { choice } => voting::cast_vote(&choice)?,
         Commands::Validate => validate::validate_votes()?,
+        Commands::BuildChain => chain::build()?,
         Commands::Tally => tally::tally_votes()?,
         Commands::Doctor => doctor::run_doctor_check()?,
     }
