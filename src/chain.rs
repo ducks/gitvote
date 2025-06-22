@@ -1,5 +1,13 @@
-fn build_chain() -> Result<(), Box<dyn Error>> {
+use std::fs;
+use chrono::Utc;
+use sha2::{Sha256, Digest};
+use std::error::Error;
+use crate::block::Block;
+use crate::vote::Vote;
+
+pub fn build() -> Result<(), Box<dyn Error>> {
     fs::create_dir_all("blocks")?;
+
     let mut entries: Vec<_> = fs::read_dir("votes")?
         .filter_map(Result::ok)
         .filter(|e| e.path().extension().and_then(|s| s.to_str()) == Some("json"))
@@ -17,8 +25,9 @@ fn build_chain() -> Result<(), Box<dyn Error>> {
             voter: vote.voter,
             choice: vote.choice,
             signature: vote.signature,
-            prev_hash: prev_hash.clone(),
+            prev_hash: Some(prev_hash.clone()),
             hash: String::new(),
+            timestamp: Utc::now(),
         };
 
         let raw = serde_json::to_string(&block)?;
