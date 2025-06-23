@@ -1,0 +1,62 @@
+name: GitVote Governance Workflow
+
+permissions:
+  contents: write
+  pull-requests: write
+
+on:
+  pull_request:
+    branches:
+      - proposal/**
+
+  push:
+    branches:
+      - proposal/**
+
+jobs:
+  validate-vote:
+    name: Validate Votes on Pull Request
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout governance repo
+    - uses: actions/checkout@v3  # checks out the voting repo itself
+
+    - name: Clone gitvote source repo
+      run: git clone https://github.com/ducks/gitvote.git
+
+    - name: Build gitvote from source
+      run: |
+        cd gitvote
+        cargo build --release
+
+    - name: Run vote validation
+      run: |
+        ./gitvote/target/release/gitvote validate
+
+  build-chain:
+    name: Build Chain After Merge
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout governance repo
+    - uses: actions/checkout@v3
+
+    - name: Clone gitvote source repo
+      run: git clone https://github.com/ducks/gitvote.git
+
+    - name: Build gitvote from source
+      run: |
+        cd gitvote
+        cargo build --release
+
+    - name: Build chain from votes
+      run: |
+        ./gitvote/target/release/gitvote build-chain
+
+    - name: Commit updated chain
+      run: |
+        git config user.name "gitvote-bot"
+        git config user.email "bot@example.com"
+        git add blocks/
+        git commit -m "Update chain after merge" || echo "No changes"
+        git push
