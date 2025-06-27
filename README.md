@@ -36,7 +36,7 @@ The CLI will be available at:
 ## Voter Workflow
 
 1. Fork the voting repo
-- Visit repo (e.g. https://github.com/ducks/gitvote-gov)
+- Visit repo (e.g. https://github.com/ducks/gitvote-test)
 - Click **Fork** (top right corner in Github UI)
 
 2. Clone your fork locally
